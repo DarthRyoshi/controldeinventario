@@ -92,6 +92,7 @@
                     <h5 class="card-title">Gestionar Productos</h5>
                     <a href="index.php?action=productos" class="btn btn-success mt-2">Abrir</a>
                 </div>
+                
             </div>
         </div>
     </div>
