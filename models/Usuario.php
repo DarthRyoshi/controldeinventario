@@ -16,6 +16,7 @@ class Usuario {
         if (!$usuario) return false;
 
         if (password_verify($contrasena, $usuario['contrasena'])) return $usuario;
+
         if ($usuario['contrasena'] === $contrasena) {
             $nuevoHash = password_hash($contrasena, PASSWORD_DEFAULT);
             $sqlUpdate = "UPDATE usuarios SET contrasena = :contrasena WHERE id = :id";
@@ -44,7 +45,25 @@ class Usuario {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    public function existsRut($rut, $excludeId = null) {
+        $sql = "SELECT COUNT(*) FROM usuarios WHERE rut = :rut";
+        if ($excludeId) {
+            $sql .= " AND id != :id";
+        }
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindParam(':rut', $rut);
+        if ($excludeId) {
+            $stmt->bindParam(':id', $excludeId);
+        }
+        $stmt->execute();
+        return $stmt->fetchColumn() > 0;
+    }
+
     public function create($nombre, $email, $contrasena, $rol, $rut) {
+        if ($this->existsRut($rut)) {
+            return false; // RUT ya existe
+        }
+
         $hash = password_hash($contrasena, PASSWORD_DEFAULT);
         $sql = "INSERT INTO usuarios (nombre, email, contrasena, rol, rut) 
                 VALUES (:nombre, :email, :contrasena, :rol, :rut)";
@@ -59,9 +78,15 @@ class Usuario {
     }
 
     public function update($id, $nombre, $email, $contrasena, $rol, $rut) {
+        if ($this->existsRut($rut, $id)) {
+            return false; // RUT ya existe
+        }
+
         if (!empty($contrasena)) {
             $hash = password_hash($contrasena, PASSWORD_DEFAULT);
-            $sql = "UPDATE usuarios SET nombre=:nombre, email=:email, contrasena=:contrasena, rol=:rol, rut=:rut WHERE id=:id";
+            $sql = "UPDATE usuarios 
+                    SET nombre=:nombre, email=:email, contrasena=:contrasena, rol=:rol, rut=:rut 
+                    WHERE id=:id";
             $stmt = $this->conn->prepare($sql);
             return $stmt->execute([
                 ':nombre' => $nombre,
@@ -72,7 +97,9 @@ class Usuario {
                 ':id' => $id
             ]);
         } else {
-            $sql = "UPDATE usuarios SET nombre=:nombre, email=:email, rol=:rol, rut=:rut WHERE id=:id";
+            $sql = "UPDATE usuarios 
+                    SET nombre=:nombre, email=:email, rol=:rol, rut=:rut 
+                    WHERE id=:id";
             $stmt = $this->conn->prepare($sql);
             return $stmt->execute([
                 ':nombre' => $nombre,

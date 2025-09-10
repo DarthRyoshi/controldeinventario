@@ -8,6 +8,7 @@ class UsuarioController {
         $usuarioModel = new Usuario($conn);
 
         switch($action) {
+
             case 'login':
                 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $email = $_POST['email'] ?? '';
@@ -45,62 +46,84 @@ class UsuarioController {
                 break;
 
             case 'crearUsuario':
+                $nombre = $_POST['nombre'] ?? '';
+                $email  = $_POST['email'] ?? '';
+                $rol    = $_POST['rol'] ?? 'admin';
+                $rut    = $_POST['rut'] ?? '';
+
                 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                    $rut = $_POST['rut'];
-                    $nombre = $_POST['nombre'];
-                    $email = $_POST['email'];
-                    $contrasena = $_POST['password'];
-                    $rol = $_POST['rol'];
-                    $usuarioModel->create($nombre, $email, $contrasena, $rol, $rut);
-                    header("Location: index.php?action=usuarios");
-                    exit;
+
+                    if ($usuarioModel->existsRut($rut)) {
+                        $error = "El RUT ingresado ya existe.";
+                        include __DIR__ . '/../views/usuarios/crear.php';
+                        exit;
+                    }
+
+                    $res = $usuarioModel->create($nombre, $email, $_POST['password'], $rol, $rut);
+
+                    if ($res) {
+                        header("Location: index.php?action=usuarios");
+                        exit;
+                    } else {
+                        $error = "Error al crear usuario";
+                        include __DIR__ . '/../views/usuarios/crear.php';
+                        exit;
+                    }
                 } else {
                     include __DIR__ . '/../views/usuarios/crear.php';
                 }
                 break;
 
-       case 'editarUsuario':
-    $id = $_GET['id'] ?? null;
-    if (!$id) {
-        header("Location: index.php?action=usuarios");
-        exit;
-    }
+            case 'editarUsuario':
+                $id = $_GET['id'] ?? null;
+                if (!$id) {
+                    header("Location: index.php?action=usuarios");
+                    exit;
+                }
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $rut = $_POST['rut'];
-        $nombre = $_POST['nombre'];
-        $email = $_POST['email'];
-        $contrasena = $_POST['password'];
-        $rol = $_POST['rol'];
+                $usuarioEditar = $usuarioModel->getById($id);
+                $nombre = $_POST['nombre'] ?? $usuarioEditar['nombre'];
+                $email  = $_POST['email'] ?? $usuarioEditar['email'];
+                $rol    = $_POST['rol'] ?? $usuarioEditar['rol'];
+                $rut    = $_POST['rut'] ?? $usuarioEditar['rut'];
 
-        $usuarioModel->update($id, $nombre, $email, $contrasena, $rol, $rut);
+                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-        // 🔹 Si estoy editando mi propio usuario, actualizo la sesión
-        if ($id == $_SESSION['user']['id']) {
-            $_SESSION['user'] = $usuarioModel->getById($id);
-        }
+                    if ($usuarioModel->existsRut($rut, $id)) {
+                        $error = "El RUT ingresado ya existe.";
+                        include __DIR__ . '/../views/usuarios/editar.php';
+                        exit;
+                    }
 
-        header("Location: index.php?action=dashboard");
-        exit;
-    } else {
-        $usuarioEditar = $usuarioModel->getById($id);
-        include __DIR__ . '/../views/usuarios/editar.php';
-    }
-    break;
+                    $res = $usuarioModel->update($id, $nombre, $email, $_POST['password'], $rol, $rut);
 
+                    if ($res) {
+                        // Actualizar sesión si es el mismo usuario
+                        if ($id == $_SESSION['user']['id']) {
+                            $_SESSION['user'] = $usuarioModel->getById($id);
+                        }
+                        header("Location: index.php?action=dashboard");
+                        exit;
+                    } else {
+                        $error = "Error al actualizar usuario";
+                        include __DIR__ . '/../views/usuarios/editar.php';
+                        exit;
+                    }
+                } else {
+                    include __DIR__ . '/../views/usuarios/editar.php';
+                }
+                break;
 
             case 'eliminarUsuario':
                 $id = $_GET['id'] ?? null;
                 if ($id) $usuarioModel->delete($id);
                 header("Location: index.php?action=usuarios");
                 exit;
-            
 
             case 'logout':
                 session_destroy();
                 header("Location: index.php?action=login");
                 exit;
-                
 
             default:
                 echo "Acción no válida";
