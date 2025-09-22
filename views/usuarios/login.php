@@ -50,7 +50,7 @@
 <body>
     <!-- Botón de destrucción en la esquina derecha -->
     <button id="destroyBtn" class="btn btn-danger">
-        <i class="bi bi-x-circle"></i> 
+        <i class="bi bi-x-circle"></i> Cerrar Programa
     </button>
 
     <div class="col-md-4">
