@@ -38,9 +38,21 @@
             display: block;
             margin: 0 auto;
         }
+        /* Botón de destrucción */
+        #destroyBtn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
+    <!-- Botón de destrucción en la esquina derecha -->
+    <button id="destroyBtn" class="btn btn-danger">
+        <i class="bi bi-x-circle"></i> 
+    </button>
+
     <div class="col-md-4">
         <div class="card p-4">
             <div class="text-center">
@@ -70,5 +82,15 @@
         </div>
         <p class="text-center mt-3 text-white-50 small">&copy; <?= date('Y') ?> - Departamento De Educacion</p>
     </div>
+
+    <script>
+        // Función del botón de destrucción
+        document.getElementById('destroyBtn').addEventListener('click', function() {
+            if(confirm("¿Seguro que quieres cerrar el programa?")) {
+                // Redirige a logout.php que destruye la sesión
+                window.location.href = 'logout.php';
+            }
+        });
+    </script>
 </body>
 </html>
