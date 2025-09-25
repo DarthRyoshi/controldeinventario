@@ -9,8 +9,8 @@ class Prestamo {
     // Obtener todos los préstamos con detalle
     public function getAll() {
         $sql = "SELECT p.id, u.nombre AS usuario_nombre, p.fecha_prestamo, p.estado,
-                       dp.id AS detalle_id, pr.nombre AS producto_nombre,
-                       dp.cantidad_prestada, dp.cantidad_devuelta
+                       dp.id AS detalle_id, pr.nombre AS producto_nombre, pr.serial,
+                       dp.cantidad_prestada, dp.cantidad_devuelta, dp.fecha_devolucion
                 FROM prestamos p
                 JOIN usuarios u ON u.id = p.usuario_id
                 JOIN detalle_prestamos dp ON dp.prestamo_id = p.id
@@ -34,8 +34,10 @@ class Prestamo {
             $prestamos[$id]['detalle'][] = [
                 'detalle_id' => $row['detalle_id'],
                 'producto_nombre' => $row['producto_nombre'],
+                'serial' => $row['serial'],
                 'cantidad_prestada' => $row['cantidad_prestada'],
-                'cantidad_devuelta' => $row['cantidad_devuelta']
+                'cantidad_devuelta' => $row['cantidad_devuelta'],
+                'fecha_devolucion' => $row['fecha_devolucion']
             ];
         }
 

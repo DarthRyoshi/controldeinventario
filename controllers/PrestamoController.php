@@ -69,7 +69,7 @@ class PrestamoController {
                     header("Location: index.php?action=prestamos");
                     exit;
                 } else {
-                    $sql = "SELECT dp.id, pr.nombre, dp.cantidad_prestada, dp.cantidad_devuelta
+                    $sql = "SELECT dp.id, pr.nombre, pr.serial, dp.cantidad_prestada, dp.cantidad_devuelta
                             FROM detalle_prestamos dp
                             JOIN productos pr ON pr.id = dp.producto_id
                             WHERE dp.prestamo_id = $prestamo_id AND dp.cantidad_devuelta < dp.cantidad_prestada";

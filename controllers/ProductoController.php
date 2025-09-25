@@ -13,13 +13,13 @@ class ProductoController {
         }
 
         switch($action) {
-
             case 'productos':
                 $productos = $productoModel->getAll();
                 include __DIR__ . '/../views/productos/listar.php';
                 break;
 
             case 'crearProducto':
+                $errorSerial = '';
                 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $nombre = $_POST['nombre'];
                     $categoria = $_POST['categoria'];
@@ -27,12 +27,6 @@ class ProductoController {
                     $descripcion = $_POST['descripcion'];
                     $estado = $_POST['estado'];
                     $serial = $_POST['serial'];
-
-                    if ($productoModel->serialExists($serial)) {
-                        $error = "El número de serial ya existe.";
-                        include __DIR__ . '/../views/productos/crear.php';
-                        exit;
-                    }
 
                     $imagen = null;
                     if (!empty($_FILES['imagen']['name'])) {
@@ -42,12 +36,17 @@ class ProductoController {
                         move_uploaded_file($_FILES['imagen']['tmp_name'], $ruta . $imagen);
                     }
 
-                    $productoModel->create($nombre, $categoria, $stock, $imagen, $descripcion, $estado, $serial);
-                    header("Location: index.php?action=productos");
-                    exit;
-                } else {
-                    include __DIR__ . '/../views/productos/crear.php';
+                    try {
+                        $productoModel->create($nombre, $categoria, $stock, $imagen, $descripcion, $estado, $serial);
+                        header("Location: index.php?action=productos");
+                        exit;
+                    } catch (Exception $e) {
+                        $errorSerial = $e->getMessage();
+                        $serial = '';
+                    }
                 }
+
+                include __DIR__ . '/../views/productos/crear.php';
                 break;
 
             case 'editarProducto':
@@ -69,13 +68,6 @@ class ProductoController {
                     $stock = $_POST['stock'];
                     $descripcion = $_POST['descripcion'];
                     $estado = $_POST['estado'];
-                    $serial = $_POST['serial'];
-
-                    if ($productoModel->serialExists($serial, $id)) {
-                        $error = "El número de serial ya existe.";
-                        include __DIR__ . '/../views/productos/editar.php';
-                        exit;
-                    }
 
                     $imagen = null;
                     if (!empty($_FILES['imagen']['name'])) {
@@ -85,7 +77,7 @@ class ProductoController {
                         move_uploaded_file($_FILES['imagen']['tmp_name'], $ruta . $imagen);
                     }
 
-                    $productoModel->update($id, $nombre, $categoria, $stock, $imagen, $descripcion, $estado, $serial);
+                    $productoModel->update($id, $nombre, $categoria, $stock, $imagen, $descripcion, $estado);
                     header("Location: index.php?action=productos");
                     exit;
                 }
@@ -95,7 +87,9 @@ class ProductoController {
 
             case 'eliminarProducto':
                 $id = $_GET['id'] ?? null;
-                if ($id) $productoModel->delete($id);
+                if ($id) {
+                    $productoModel->delete($id);
+                }
                 header("Location: index.php?action=productos");
                 exit;
 

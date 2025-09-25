@@ -1,8 +1,5 @@
 <?php 
-if (!isset($_SESSION['user'])) { 
-    header("Location: index.php?action=login"); 
-    exit; 
-} 
+if (!isset($_SESSION['user'])) { header("Location: index.php?action=login"); exit; } 
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -19,68 +16,58 @@ table { background:#fff; border-radius:10px; overflow:hidden; }
 th, td { vertical-align: middle !important; text-align: center; }
 .product-img { width: 80px; height: 80px; object-fit: cover; cursor:pointer; border-radius:5px; }
 .truncate { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor:pointer; color:blue; }
-
-/* Modal de imagen ajustado */
-.modal-img {
-    width: auto;
-    max-width: 400px;   /* Máximo ancho al hacer clic */
-    max-height: 400px;  /* Máximo alto */
-    display: block;
-    margin: 20px auto;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    transition: transform 0.3s ease;
-}
+.modal-img { width:auto; max-width:400px; max-height:400px; display:block; margin:20px auto; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.2); transition: transform 0.3s ease; }
 </style>
 </head>
 <body>
 <div class="container mt-5">
-    <img src="assets/images/iconomuni.png" class="logo-img" onclick="window.location='index.php?action=dashboard'">
-    <div class="card">
-        <h2>Listado de Productos</h2>
-        <a href="index.php?action=crearProducto" class="btn btn-success mb-3">Crear Producto</a>
-        <table class="table table-striped">
-            <thead class="table-dark">
-                <tr>
-                    <th>Nombre</th>
-                    <th>Categoria</th>
-                    <th>Stock</th>
-                    <th>Imagen</th>
-                    <th>Descripción</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($productos as $p): ?>
-                <tr>
-                    <td><?= htmlspecialchars($p['nombre']) ?></td>
-                    <td><?= htmlspecialchars($p['categoria']) ?></td>
-                    <td><?= htmlspecialchars($p['stock']) ?></td>
-                    <td>
-                        <?php if($p['imagen'] && file_exists('assets/images/productos/'.$p['imagen'])): ?>
-                            <img src="assets/images/productos/<?= $p['imagen'] ?>" class="product-img" onclick="showModal('<?= $p['imagen'] ?>')">
-                        <?php else: ?>
-                            <img src="assets/images/no-image.png" class="product-img">
-                        <?php endif; ?>
-                    </td>
-                    <td class="truncate" title="<?= htmlspecialchars($p['descripcion']) ?>" onclick="showDescriptionModal('<?= htmlspecialchars(addslashes($p['descripcion'])) ?>')">
-                        <?= htmlspecialchars(substr($p['descripcion'], 0, 50)) ?><?= strlen($p['descripcion'])>50?'...':'' ?>
-                    </td>
-                    <td><?= htmlspecialchars($p['estado']) ?></td>
-                    <td>
-                        <a href="index.php?action=editarProducto&id=<?= $p['id'] ?>" class="btn btn-warning btn-sm">Actualizar</a>
-                        <a href="index.php?action=eliminarProducto&id=<?= $p['id'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar este producto?')">Eliminar</a>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-        <a href="index.php?action=dashboard" class="btn btn-secondary btn-back">Volver al Dashboard</a>
-    </div>
+<img src="assets/images/iconomuni.png" class="logo-img" onclick="window.location='index.php?action=dashboard'">
+<div class="card">
+<h2>Listado de Productos</h2>
+<a href="index.php?action=crearProducto" class="btn btn-success mb-3">Crear Producto</a>
+<table class="table table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th>Nombre</th>
+            <th>Categoria</th>
+            <th>Stock</th>
+            <th>Serial</th>
+            <th>Imagen</th>
+            <th>Descripción</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php foreach ($productos as $p): ?>
+        <tr>
+            <td><?= htmlspecialchars($p['nombre']) ?></td>
+            <td><?= htmlspecialchars($p['categoria']) ?></td>
+            <td><?= htmlspecialchars($p['stock']) ?></td>
+            <td><?= htmlspecialchars($p['serial']) ?></td>
+            <td>
+                <?php if($p['imagen'] && file_exists('assets/images/productos/'.$p['imagen'])): ?>
+                    <img src="assets/images/productos/<?= $p['imagen'] ?>" class="product-img" onclick="showModal('<?= $p['imagen'] ?>')">
+                <?php else: ?>
+                    <img src="assets/images/no-image.png" class="product-img">
+                <?php endif; ?>
+            </td>
+            <td class="truncate" title="<?= htmlspecialchars($p['descripcion']) ?>" onclick="showDescriptionModal('<?= htmlspecialchars(addslashes($p['descripcion'])) ?>')">
+                <?= htmlspecialchars(substr($p['descripcion'], 0, 50)) ?><?= strlen($p['descripcion'])>50?'...':'' ?>
+            </td>
+            <td><?= htmlspecialchars($p['estado']) ?></td>
+            <td>
+                <a href="index.php?action=editarProducto&id=<?= $p['id'] ?>" class="btn btn-warning btn-sm">Actualizar</a>
+                <a href="index.php?action=eliminarProducto&id=<?= $p['id'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar este producto?')">Eliminar</a>
+            </td>
+        </tr>
+        <?php endforeach; ?>
+    </tbody>
+</table>
+<a href="index.php?action=dashboard" class="btn btn-secondary btn-back">Volver al Dashboard</a>
+</div>
 </div>
 
-<!-- Modal de Imagen -->
 <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -94,7 +81,6 @@ th, td { vertical-align: middle !important; text-align: center; }
   </div>
 </div>
 
-<!-- Modal de Descripción -->
 <div class="modal fade" id="descriptionModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
@@ -118,7 +104,6 @@ function showModal(filename) {
     const modal = new bootstrap.Modal(document.getElementById('imageModal'));
     modal.show();
 }
-
 function showDescriptionModal(texto) {
     document.getElementById('modalDescriptionBody').innerText = texto;
     const modal = new bootstrap.Modal(document.getElementById('descriptionModal'));

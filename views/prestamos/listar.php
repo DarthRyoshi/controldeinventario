@@ -44,7 +44,13 @@ if (!isset($_SESSION['user'])) {
                         <ul>
                             <?php foreach ($p['detalle'] as $d): ?>
                                 <li>
-                                    <?= htmlspecialchars($d['producto_nombre']) ?> - Prestado: <?= $d['cantidad_prestada'] ?>, Devuelto: <?= $d['cantidad_devuelta'] ?>
+                                    <?= htmlspecialchars($d['producto_nombre']) ?>  
+                                    (Serial: <?= htmlspecialchars($d['serial']) ?>)  
+                                    - Prestado: <?= $d['cantidad_prestada'] ?>,  
+                                    Devuelto: <?= $d['cantidad_devuelta'] ?>  
+                                    <?php if (!empty($d['fecha_devolucion'])): ?>
+                                        <br><small>Devuelto en: <?= date('Y-m-d H:i:s', strtotime($d['fecha_devolucion'])) ?></small>
+                                    <?php endif; ?>
                                 </li>
                             <?php endforeach; ?>
                         </ul>
@@ -53,7 +59,6 @@ if (!isset($_SESSION['user'])) {
                     <td><?= htmlspecialchars($p['estado']) ?></td>
                     <td>
                         <?php 
-                        // Solo mostrar botón si hay productos pendientes
                         $pendientes = false;
                         foreach ($p['detalle'] as $d) {
                             if ($d['cantidad_devuelta'] < $d['cantidad_prestada']) {

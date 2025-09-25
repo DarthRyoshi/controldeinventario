@@ -1,7 +1,4 @@
-<?php if (!isset($_SESSION['user'])) { 
-    header("Location: index.php?action=login"); 
-    exit; 
-} ?>
+<?php if (!isset($_SESSION['user'])) { header("Location: index.php?action=login"); exit; } ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -13,7 +10,6 @@ body { background: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sa
 .logo-img { height: 60px; cursor:pointer; margin-bottom:20px; display:block; margin:auto; }
 .card { border-radius:15px; padding:30px; background:#fff; box-shadow:0 5px 20px rgba(0,0,0,0.1); max-width:600px; margin:auto;}
 .btn-bottom { display:block; margin:auto; margin-top:20px; }
-.img-preview { max-width:150px; max-height:150px; display:block; margin-top:10px; border-radius:5px; }
 </style>
 </head>
 <body>
@@ -21,6 +17,7 @@ body { background: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sa
 <img src="assets/images/iconomuni.png" class="logo-img" onclick="window.location='index.php?action=dashboard'">
 <div class="card">
 <h2>Editar Producto</h2>
+
 <form action="index.php?action=editarProducto&id=<?= $producto['id'] ?>" method="POST" enctype="multipart/form-data">
     <div class="mb-3">
         <label>Nombre</label>
@@ -37,8 +34,8 @@ body { background: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sa
     <div class="mb-3">
         <label>Imagen</label>
         <input type="file" name="imagen" class="form-control" accept="image/*">
-        <?php if(!empty($producto['imagen'])): ?>
-            <img src="assets/images/productos/<?= $producto['imagen'] ?>" class="img-preview">
+        <?php if (!empty($producto['imagen'])): ?>
+            <img src="assets/images/productos/<?= $producto['imagen'] ?>" style="height:80px; margin-top:10px;">
         <?php endif; ?>
     </div>
     <div class="mb-3">
@@ -48,11 +45,16 @@ body { background: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sa
     <div class="mb-3">
         <label>Estado</label>
         <select name="estado" class="form-control">
-            <option value="activo" <?= $producto['estado']=='activo'?'selected':'' ?>>Activo</option>
-            <option value="inactivo" <?= $producto['estado']=='inactivo'?'selected':'' ?>>Inactivo</option>
+            <option value="activo" <?= ($producto['estado']=='activo')?'selected':'' ?>>Activo</option>
+            <option value="inactivo" <?= ($producto['estado']=='inactivo')?'selected':'' ?>>Inactivo</option>
         </select>
     </div>
-    <button type="submit" class="btn btn-warning">Actualizar Producto</button>
+    <div class="mb-3">
+        <label>Serial</label>
+        <input type="text" class="form-control" value="<?= htmlspecialchars($producto['serial']) ?>" readonly>
+    </div>
+
+    <button type="submit" class="btn btn-success">Actualizar Producto</button>
     <a href="index.php?action=productos" class="btn btn-secondary btn-bottom">Volver</a>
 </form>
 </div>

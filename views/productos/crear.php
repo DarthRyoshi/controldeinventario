@@ -17,18 +17,23 @@ body { background: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sa
 <img src="assets/images/iconomuni.png" class="logo-img" onclick="window.location='index.php?action=dashboard'">
 <div class="card">
 <h2>Crear Producto</h2>
+
+<?php if (!empty($errorSerial)): ?>
+    <div class="alert alert-danger"><?= htmlspecialchars($errorSerial) ?></div>
+<?php endif; ?>
+
 <form action="index.php?action=crearProducto" method="POST" enctype="multipart/form-data">
     <div class="mb-3">
         <label>Nombre</label>
-        <input type="text" name="nombre" class="form-control" required>
+        <input type="text" name="nombre" class="form-control" value="<?= htmlspecialchars($_POST['nombre'] ?? '') ?>" required>
     </div>
     <div class="mb-3">
         <label>Categoria</label>
-        <input type="text" name="categoria" class="form-control" required>
+        <input type="text" name="categoria" class="form-control" value="<?= htmlspecialchars($_POST['categoria'] ?? '') ?>" required>
     </div>
     <div class="mb-3">
         <label>Stock</label>
-        <input type="number" name="stock" class="form-control" min="0" required>
+        <input type="number" name="stock" class="form-control" min="0" value="<?= htmlspecialchars($_POST['stock'] ?? '') ?>" required>
     </div>
     <div class="mb-3">
         <label>Imagen</label>
@@ -36,15 +41,24 @@ body { background: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sa
     </div>
     <div class="mb-3">
         <label>Descripción</label>
-        <textarea name="descripcion" class="form-control"></textarea>
+        <textarea name="descripcion" class="form-control"><?= htmlspecialchars($_POST['descripcion'] ?? '') ?></textarea>
     </div>
     <div class="mb-3">
         <label>Estado</label>
         <select name="estado" class="form-control">
-            <option value="activo">Activo</option>
-            <option value="inactivo">Inactivo</option>
+            <option value="activo" <?= (($_POST['estado'] ?? '')=='activo')?'selected':'' ?>>Activo</option>
+            <option value="inactivo" <?= (($_POST['estado'] ?? '')=='inactivo')?'selected':'' ?>>Inactivo</option>
         </select>
     </div>
+    <div class="mb-3">
+        <label>Serial</label>
+        <input type="text" name="serial" class="form-control" 
+               value="<?= htmlspecialchars($serial ?? '') ?>" 
+               required
+               pattern="\S+"
+               title="El serial no puede estar vacío ni contener espacios">
+    </div>
+
     <button type="submit" class="btn btn-success">Crear Producto</button>
     <a href="index.php?action=productos" class="btn btn-secondary btn-bottom">Volver</a>
 </form>
