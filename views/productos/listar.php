@@ -18,8 +18,19 @@ h2 { text-align:center; margin-bottom:20px; }
 table { background:#fff; border-radius:10px; overflow:hidden; }
 th, td { vertical-align: middle !important; text-align: center; }
 .product-img { width: 80px; height: 80px; object-fit: cover; cursor:pointer; border-radius:5px; }
-.modal-img { width: 100%; }
 .truncate { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor:pointer; color:blue; }
+
+/* Modal de imagen ajustado */
+.modal-img {
+    width: auto;
+    max-width: 400px;   /* Máximo ancho al hacer clic */
+    max-height: 400px;  /* Máximo alto */
+    display: block;
+    margin: 20px auto;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    transition: transform 0.3s ease;
+}
 </style>
 </head>
 <body>
@@ -71,13 +82,13 @@ th, td { vertical-align: middle !important; text-align: center; }
 
 <!-- Modal de Imagen -->
 <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-body p-0">
         <img src="" id="modalImage" class="modal-img">
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
       </div>
     </div>
   </div>

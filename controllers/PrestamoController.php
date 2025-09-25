@@ -22,17 +22,22 @@ class PrestamoController {
 
             case 'crearPrestamo':
                 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                    $usuario_id  = $_POST['usuario_id'];   // a quién se le presta
-                    $producto_id = $_POST['producto_id'];
+                    $usuario_id  = $_POST['usuario_id'];
+                    $productos = [];
 
-                    // Crear el préstamo
-                    $prestamo_id = $prestamoModel->create($usuario_id, $producto_id);
+                    if (!empty($_POST['productos'])) {
+                        foreach ($_POST['productos'] as $p) {
+                            if (isset($p['id'], $p['cantidad']) && $p['cantidad'] > 0) {
+                                $productos[] = ['id' => $p['id'], 'cantidad' => (int)$p['cantidad']];
+                            }
+                        }
+                    }
+
+                    $prestamo_id = $prestamoModel->create($usuario_id, $productos);
 
                     if ($prestamo_id) {
-                        // Guardamos en bitácora el evento de creación
                         $stmt = $conn->prepare(
-                            "INSERT INTO bitacora (prestamo_id, accion, fecha) 
-                             VALUES (?, 'PRÉSTAMO CREADO', NOW())"
+                            "INSERT INTO bitacora (prestamo_id, accion, fecha) VALUES (?, 'PRÉSTAMO CREADO', NOW())"
                         );
                         $stmt->execute([$prestamo_id]);
                     }
@@ -51,21 +56,27 @@ class PrestamoController {
                 break;
 
             case 'devolverPrestamo':
-                $id = $_GET['id'] ?? null;
+                $prestamo_id = $_GET['id'] ?? null;
 
-                if ($id) {
-                    if ($prestamoModel->devolver($id)) {
-                        // Guardamos en bitácora el evento de devolución
-                        $stmt = $conn->prepare(
-                            "INSERT INTO bitacora (prestamo_id, accion, fecha) 
-                             VALUES (?, 'DEVUELTO', NOW())"
-                        );
-                        $stmt->execute([$id]);
-                    }
+                if ($_SERVER['REQUEST_METHOD'] === 'POST' && $prestamo_id) {
+                    $prestamoModel->devolver($prestamo_id, $_POST['devolver'] ?? []);
+
+                    $stmt = $conn->prepare(
+                        "INSERT INTO bitacora (prestamo_id, accion, fecha) VALUES (?, 'DEVUELTO PARCIAL', NOW())"
+                    );
+                    $stmt->execute([$prestamo_id]);
+
+                    header("Location: index.php?action=prestamos");
+                    exit;
+                } else {
+                    $sql = "SELECT dp.id, pr.nombre, dp.cantidad_prestada, dp.cantidad_devuelta
+                            FROM detalle_prestamos dp
+                            JOIN productos pr ON pr.id = dp.producto_id
+                            WHERE dp.prestamo_id = $prestamo_id AND dp.cantidad_devuelta < dp.cantidad_prestada";
+                    $productos = $conn->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+
+                    include __DIR__ . '/../views/prestamos/devolver.php';
                 }
-
-                header("Location: index.php?action=prestamos");
-                exit;
                 break;
 
             default:

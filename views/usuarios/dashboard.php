@@ -102,6 +102,12 @@
                 </div>
                 
             </div>
+            <div class="card text-center card-dashboard">
+                <div class="card-body">
+                    <i class="bi bi-journal card-icon"></i>
+                    <h5 class="card-title">Bitacora</h5>
+                    <a href="index.php?action=bitacora" class="btn btn-success mt-2">Abrir</a>
+                </div>
         </div>
     </div>
 </body>

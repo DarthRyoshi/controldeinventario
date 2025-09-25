@@ -17,6 +17,7 @@ if (!isset($_SESSION['user'])) {
         h2 { text-align:center; margin-bottom:20px; }
         table { background:#fff; border-radius:10px; overflow:hidden; }
         th, td { vertical-align: middle !important; text-align: center; }
+        ul { padding-left: 20px; text-align: left; margin:0; }
     </style>
 </head>
 <body>
@@ -29,9 +30,8 @@ if (!isset($_SESSION['user'])) {
             <thead class="table-dark">
                 <tr>
                     <th>Usuario</th>
-                    <th>Producto</th>
+                    <th>Productos</th>
                     <th>Fecha Préstamo</th>
-                    <th>Fecha Devolución</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
@@ -40,12 +40,27 @@ if (!isset($_SESSION['user'])) {
                 <?php foreach ($prestamos as $p): ?>
                 <tr>
                     <td><?= htmlspecialchars($p['usuario_nombre']) ?></td>
-                    <td><?= htmlspecialchars($p['producto_nombre']) ?></td>
+                    <td>
+                        <ul>
+                            <?php foreach ($p['detalle'] as $d): ?>
+                                <li>
+                                    <?= htmlspecialchars($d['producto_nombre']) ?> - Prestado: <?= $d['cantidad_prestada'] ?>, Devuelto: <?= $d['cantidad_devuelta'] ?>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </td>
                     <td><?= date('Y-m-d H:i:s', strtotime($p['fecha_prestamo'])) ?></td>
-                    <td><?= !empty($p['fecha_devolucion']) ? date('Y-m-d H:i:s', strtotime($p['fecha_devolucion'])) : '-' ?></td>
                     <td><?= htmlspecialchars($p['estado']) ?></td>
                     <td>
-                        <?php if ($p['estado'] === 'prestado'): ?>
+                        <?php 
+                        // Solo mostrar botón si hay productos pendientes
+                        $pendientes = false;
+                        foreach ($p['detalle'] as $d) {
+                            if ($d['cantidad_devuelta'] < $d['cantidad_prestada']) {
+                                $pendientes = true; break;
+                            }
+                        }
+                        if ($pendientes): ?>
                             <a href="index.php?action=devolverPrestamo&id=<?= $p['id'] ?>" class="btn btn-primary btn-sm">Devolver</a>
                         <?php endif; ?>
                     </td>
