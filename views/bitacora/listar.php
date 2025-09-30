@@ -1,4 +1,4 @@
-<h1>Bitácora de Usuarios</h1>
+<h1>Bitácora</h1>
 
 <form method="GET" class="form-filtro">
     <label>Fecha inicio:</label>
