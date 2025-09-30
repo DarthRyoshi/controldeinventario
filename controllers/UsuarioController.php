@@ -1,14 +1,15 @@
 <?php
 require_once __DIR__ . '/../models/Usuario.php';
+require_once __DIR__ . '/../models/Bitacora.php';
 require_once __DIR__ . '/../config.php';
 
 class UsuarioController {
     public static function handle($action) {
         global $conn;
         $usuarioModel = new Usuario($conn);
+        $bitacora = new Bitacora($conn);
 
         switch($action) {
-
             case 'login':
                 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $email = $_POST['email'] ?? '';
@@ -16,6 +17,14 @@ class UsuarioController {
                     $user = $usuarioModel->login($email, $password);
                     if ($user) {
                         $_SESSION['user'] = $user;
+
+                        // Registrar login en bitácora
+                        $bitacora->registrar(
+                            "LOGIN",
+                            "Ingreso al sistema",
+                            $user['id']
+                        );
+
                         header("Location: index.php?action=dashboard");
                         exit;
                     } else {
@@ -52,16 +61,20 @@ class UsuarioController {
                 $rut    = $_POST['rut'] ?? '';
 
                 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
                     if ($usuarioModel->existsRut($rut)) {
                         $error = "El RUT ingresado ya existe.";
                         include __DIR__ . '/../views/usuarios/crear.php';
                         exit;
                     }
 
-                    $res = $usuarioModel->create($nombre, $email, $_POST['password'], $rol, $rut);
+                    $id_nuevo = $usuarioModel->create($nombre, $email, $_POST['password'], $rol, $rut);
 
-                    if ($res) {
+                    if ($id_nuevo) {
+                        $bitacora->registrar(
+                            "CREAR USUARIO",
+                            "Se creó el usuario $nombre con RUT $rut",
+                            $_SESSION['user']['id']
+                        );
                         header("Location: index.php?action=usuarios");
                         exit;
                     } else {
@@ -88,7 +101,6 @@ class UsuarioController {
                 $rut    = $_POST['rut'] ?? $usuarioEditar['rut'];
 
                 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
                     if ($usuarioModel->existsRut($rut, $id)) {
                         $error = "El RUT ingresado ya existe.";
                         include __DIR__ . '/../views/usuarios/editar.php';
@@ -98,7 +110,12 @@ class UsuarioController {
                     $res = $usuarioModel->update($id, $nombre, $email, $_POST['password'], $rol, $rut);
 
                     if ($res) {
-                        // Actualizar sesión si es el mismo usuario
+                        $bitacora->registrar(
+                            "EDITAR USUARIO",
+                            "Se editó el usuario $nombre (ID $id)",
+                            $_SESSION['user']['id']
+                        );
+
                         if ($id == $_SESSION['user']['id']) {
                             $_SESSION['user'] = $usuarioModel->getById($id);
                         }
@@ -116,11 +133,25 @@ class UsuarioController {
 
             case 'eliminarUsuario':
                 $id = $_GET['id'] ?? null;
-                if ($id) $usuarioModel->delete($id);
+                if ($id) {
+                    $usuarioModel->delete($id);
+                    $bitacora->registrar(
+                        "ELIMINAR USUARIO",
+                        "Se eliminó el usuario con ID $id",
+                        $_SESSION['user']['id']
+                    );
+                }
                 header("Location: index.php?action=usuarios");
                 exit;
 
             case 'logout':
+                if (isset($_SESSION['user']['id'])) {
+                    $bitacora->registrar(
+                        "LOGOUT",
+                        "Cierre de sesión",
+                        $_SESSION['user']['id']
+                    );
+                }
                 session_destroy();
                 header("Location: index.php?action=login");
                 exit;
