@@ -1,11 +1,13 @@
 <?php
 require_once __DIR__ . '/../models/Producto.php';
+require_once __DIR__ . '/../models/Bitacora.php';
 require_once __DIR__ . '/../config.php';
 
 class ProductoController {
     public static function handle($action) {
         global $conn;
         $productoModel = new Producto($conn);
+        $bitacora = new Bitacora($conn);
 
         if (!isset($_SESSION['user'])) {
             header("Location: index.php?action=login");
@@ -19,14 +21,13 @@ class ProductoController {
                 break;
 
             case 'crearProducto':
-                $errorSerial = '';
                 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                    $nombre = $_POST['nombre'];
-                    $categoria = $_POST['categoria'];
-                    $stock = $_POST['stock'];
+                    $nombre      = $_POST['nombre'];
+                    $categoria   = $_POST['categoria'];
+                    $stock       = $_POST['stock'];
                     $descripcion = $_POST['descripcion'];
-                    $estado = $_POST['estado'];
-                    $serial = $_POST['serial'];
+                    $estado      = $_POST['estado'];
+                    $serial      = $_POST['serial'];
 
                     $imagen = null;
                     if (!empty($_FILES['imagen']['name'])) {
@@ -37,16 +38,26 @@ class ProductoController {
                     }
 
                     try {
-                        $productoModel->create($nombre, $categoria, $stock, $imagen, $descripcion, $estado, $serial);
+                        $id_nuevo = $productoModel->create($nombre, $categoria, $stock, $imagen, $descripcion, $estado, $serial);
+
+                        // Registrar en bitácora
+                        $bitacora->registrar(
+                            "CREAR PRODUCTO",
+                            "Se creó el producto $nombre con serial $serial",
+                            $_SESSION['user']['id'],
+                            $id_nuevo
+                        );
+
                         header("Location: index.php?action=productos");
                         exit;
                     } catch (Exception $e) {
-                        $errorSerial = $e->getMessage();
-                        $serial = '';
+                        $error = $e->getMessage();
+                        include __DIR__ . '/../views/productos/crear.php';
+                        exit;
                     }
+                } else {
+                    include __DIR__ . '/../views/productos/crear.php';
                 }
-
-                include __DIR__ . '/../views/productos/crear.php';
                 break;
 
             case 'editarProducto':
@@ -63,11 +74,11 @@ class ProductoController {
                 }
 
                 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                    $nombre = $_POST['nombre'];
-                    $categoria = $_POST['categoria'];
-                    $stock = $_POST['stock'];
+                    $nombre      = $_POST['nombre'];
+                    $categoria   = $_POST['categoria'];
+                    $stock       = $_POST['stock'];
                     $descripcion = $_POST['descripcion'];
-                    $estado = $_POST['estado'];
+                    $estado      = $_POST['estado'];
 
                     $imagen = null;
                     if (!empty($_FILES['imagen']['name'])) {
@@ -78,24 +89,42 @@ class ProductoController {
                     }
 
                     $productoModel->update($id, $nombre, $categoria, $stock, $imagen, $descripcion, $estado);
+
+                    // Registrar en bitácora
+                    $bitacora->registrar(
+                        "EDITAR PRODUCTO",
+                        "Se editó el producto $nombre (ID $id)",
+                        $_SESSION['user']['id'],
+                        $id
+                    );
+
                     header("Location: index.php?action=productos");
                     exit;
+                } else {
+                    include __DIR__ . '/../views/productos/editar.php';
                 }
-
-                include __DIR__ . '/../views/productos/editar.php';
                 break;
 
             case 'eliminarProducto':
                 $id = $_GET['id'] ?? null;
                 if ($id) {
+                    $producto = $productoModel->getById($id);
                     $productoModel->delete($id);
+
+                    // Registrar en bitácora
+                    $bitacora->registrar(
+                        "ELIMINAR PRODUCTO",
+                        "Se eliminó el producto {$producto['nombre']} (ID $id)",
+                        $_SESSION['user']['id'],
+                        $id
+                    );
                 }
                 header("Location: index.php?action=productos");
                 exit;
 
             default:
-                header("Location: index.php?action=productos");
-                exit;
+                echo "Acción no válida";
+                break;
         }
     }
 }
