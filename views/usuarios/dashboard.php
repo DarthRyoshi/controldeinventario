@@ -89,7 +89,7 @@
             <div class="card text-center card-dashboard">
                 <div class="card-body">
                     <i class="bi bi-box-seam card-icon"></i>
-                    <h5 class="card-title">Gestionar Productos</h5>
+                    <h5 class="card-title">Gestionar Inventario</h5>
                     <a href="index.php?action=productos" class="btn btn-success mt-2">Abrir</a>
                 </div>
                 
