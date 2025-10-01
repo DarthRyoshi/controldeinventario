@@ -91,7 +91,7 @@ if (!isset($_SESSION['user'])) {
         </table>
     </div>
 
-    <a href="index.php?action=dashboard" class="btn btn-secondary btn-back">Volver al Dashboard</a>
+    <a href="index.php?action=dashboard" class="btn btn-secondary btn-back">Volver a Inicio</a>
 
 </div>
 </body>

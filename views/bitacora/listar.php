@@ -18,7 +18,6 @@
             <th>Descripción</th>
             <th>Usuario</th>
             <th>Producto (Serial)</th>
-            <th>Préstamo ID</th>
         </tr>
     </thead>
     <tbody>
@@ -30,7 +29,6 @@
                     <td><?= $row['descripcion'] ?></td>
                     <td><?= $row['usuario'] ?></td>
                     <td><?= $row['producto_serial'] ?></td>
-                    <td><?= $row['prestamo_id'] ?></td>
                 </tr>
             <?php endforeach; ?>
         <?php else: ?>
@@ -41,4 +39,4 @@
     </tbody>
 </table>
 
-<a href="index.php?action=dashboard" class="btn btn-secondary btn-back">Volver al Dashboard</a>
+<a href="index.php?action=dashboard" class="btn btn-secondary btn-back">Volver a Inicio</a>

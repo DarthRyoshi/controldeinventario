@@ -49,7 +49,6 @@ if (!isset($_SESSION['user'])) {
                                     - Prestado: <?= $d['cantidad_prestada'] ?>,  
                                     Devuelto: <?= $d['cantidad_devuelta'] ?>  
                                     <?php if (!empty($d['fecha_devolucion'])): ?>
-                                        <br><small>Devuelto en: <?= date('Y-m-d H:i:s', strtotime($d['fecha_devolucion'])) ?></small>
                                     <?php endif; ?>
                                 </li>
                             <?php endforeach; ?>
@@ -73,7 +72,7 @@ if (!isset($_SESSION['user'])) {
                 <?php endforeach; ?>
             </tbody>
         </table>
-        <a href="index.php?action=dashboard" class="btn btn-secondary btn-back">Volver al Dashboard</a>
+        <a href="index.php?action=dashboard" class="btn btn-secondary btn-back">Volver a Inicio</a>
     </div>
 </div>
 </body>

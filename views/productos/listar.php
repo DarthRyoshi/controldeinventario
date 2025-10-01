@@ -64,7 +64,7 @@ th, td { vertical-align: middle !important; text-align: center; }
         <?php endforeach; ?>
     </tbody>
 </table>
-<a href="index.php?action=dashboard" class="btn btn-secondary btn-back">Volver al Dashboard</a>
+<a href="index.php?action=dashboard" class="btn btn-secondary btn-back">Volver a Inicio</a>
 </div>
 </div>
 
