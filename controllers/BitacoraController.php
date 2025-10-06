@@ -8,10 +8,11 @@ class BitacoraController {
         $this->model = new Bitacora($conn);
     }
 
-    /**
-     * Listar registros de la bitácora con filtros por fecha
-     */
+    
     public function listar() {
+        
+        // Obtener filtros de fecha desde la solicitud GET
+
         $filters = [
             'fecha_inicio' => $_GET['fecha_inicio'] ?? '',
             'fecha_fin'    => $_GET['fecha_fin'] ?? ''
@@ -23,12 +24,10 @@ class BitacoraController {
         require __DIR__ . '/../views/bitacora/listar.php';
     }
 
-    /**
-     * Registrar acción de usuario
-     */
+   
     public function registrarAccion($accion, $descripcion, $usuario_id) {
-        // Solo acciones de usuario, producto y préstamo null
-        $this->model->registrar($accion, $descripcion, $usuario_id, null, null);
+    // Solo acciones de usuario, producto y préstamo null
+    $this->model->registrar($accion, $descripcion, $usuario_id, null, null);
     }
 }
 ?>

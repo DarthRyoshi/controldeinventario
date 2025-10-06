@@ -27,28 +27,30 @@ class PrestamoController {
 
             case 'crearPrestamo':
                 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                    $usuario_id  = $_POST['usuario_id'];
-                    $productos   = [];
+                    $usuario_id = $_POST['usuario_id'];
+                    $productos  = [];
 
-                    foreach ($_POST['productos'] ?? [] as $p) {
-                        if (isset($p['id'], $p['cantidad']) && $p['cantidad'] > 0) {
-                            $productos[] = ['id' => $p['id'], 'cantidad' => (int)$p['cantidad']];
+                    // Solo se agregan productos marcados (checklist)
+                    foreach ($_POST['productos'] ?? [] as $pid => $p) {
+                        if (!empty($p['id'])) {
+                            $productos[] = ['id' => (int)$p['id']];
                         }
                     }
 
                     $prestamo_id = $prestamoModel->create($usuario_id, $productos);
 
                     if ($prestamo_id) {
-                        // Crear mensaje descriptivo para bitácora
                         $detalle_texto = [];
                         foreach ($productos as $p) {
                             $prod = $productoModel->getById($p['id']);
-                            if ($prod) $detalle_texto[] = $prod['nombre'] . " (Serial: {$prod['serial']}) x{$p['cantidad']}";
+                            if ($prod) {
+                                $detalle_texto[] = "{$prod['nombre']} (Serial: {$prod['serial']})";
+                            }
                         }
-                        $mensaje = "{$_SESSION['user']['nombre']} le prestó los siguientes insumos a " .
-                                    $usuarioModel->getById($usuario_id)['nombre'] . ": " . implode(", ", $detalle_texto);
 
-                        // Registrar en bitácora
+                        $mensaje = "{$_SESSION['user']['nombre']} le prestó los siguientes insumos a " .
+                                   $usuarioModel->getById($usuario_id)['nombre'] . ": " . implode(", ", $detalle_texto);
+
                         $bitacora->registrar(
                             "CREAR PRÉSTAMO",
                             $mensaje,
@@ -75,21 +77,52 @@ class PrestamoController {
                 }
 
                 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                    $prestamoModel->devolver($prestamo_id, $_POST['devolver'] ?? []);
+                    $productos_devueltos = $_POST['devolver'] ?? [];
+                    $prestamoModel->devolver($prestamo_id, $productos_devueltos);
 
-                    // Registrar devolución parcial o completa en bitácora
-                    $mensaje = "El usuario {$_SESSION['user']['nombre']} registró devolución en el préstamo ID $prestamo_id";
+                    // Obtener nombre del usuario asociado al préstamo
+                    $stmt_usuario = $conn->prepare("SELECT u.nombre FROM prestamos p JOIN usuarios u ON p.usuario_id = u.id WHERE p.id = :prestamo_id");
+                    $stmt_usuario->execute(['prestamo_id' => $prestamo_id]);
+                    $usuario_nombre = $stmt_usuario->fetchColumn() ?: 'Usuario';
+
+                    // Construir mensaje descriptivo para bitácora
+                    $detalle_texto = [];
+                    foreach ($productos_devueltos as $detalle_id) {
+                        $prod = $conn->query("
+                            SELECT pr.nombre, pr.serial 
+                            FROM detalle_prestamos dp 
+                            JOIN productos pr ON pr.id = dp.producto_id 
+                            WHERE dp.id = $detalle_id
+                        ")->fetch(PDO::FETCH_ASSOC);
+
+                        if ($prod) {
+                            $detalle_texto[] = "{$prod['nombre']} (Serial: {$prod['serial']})";
+                        }
+                    }
+
+                    $mensaje = "Registro de devolución del préstamo de {$usuario_nombre}: " . implode(", ", $detalle_texto);
+
+                    // Registrar en bitácora
                     $bitacora->registrar("DEVOLUCIÓN PRÉSTAMO", $mensaje, $_SESSION['user']['id'], null, $prestamo_id);
 
                     header("Location: index.php?action=prestamos");
                     exit;
                 }
 
-                $sql = "SELECT dp.id, pr.nombre, pr.serial, dp.cantidad_prestada, dp.cantidad_devuelta
+                $sql = "SELECT 
+                            dp.id AS id,
+                            dp.producto_id,
+                            pr.nombre,
+                            pr.serial,
+                            COALESCE(dp.cantidad_prestada, 1) AS cantidad_prestada,
+                            COALESCE(dp.cantidad_devuelta, 0) AS cantidad_devuelta
                         FROM detalle_prestamos dp
                         JOIN productos pr ON pr.id = dp.producto_id
-                        WHERE dp.prestamo_id = $prestamo_id AND dp.cantidad_devuelta < dp.cantidad_prestada";
-                $productos = $conn->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+                        WHERE dp.prestamo_id = :prestamo_id
+                        ORDER BY dp.id";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute(['prestamo_id' => $prestamo_id]);
+                $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 include __DIR__ . '/../views/prestamos/devolver.php';
                 break;

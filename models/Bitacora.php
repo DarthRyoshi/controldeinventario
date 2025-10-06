@@ -52,12 +52,14 @@ class Bitacora {
 
         if (!empty($filters['fecha_inicio'])) {
             $sql .= " AND b.fecha >= :fecha_inicio";
-            $params[':fecha_inicio'] = $filters['fecha_inicio'];
+            // ---- NUEVO: incluir todo el día desde las 00:00:00 ----
+            $params[':fecha_inicio'] = $filters['fecha_inicio'] . " 00:00:00";
         }
 
         if (!empty($filters['fecha_fin'])) {
             $sql .= " AND b.fecha <= :fecha_fin";
-            $params[':fecha_fin'] = $filters['fecha_fin'];
+            // ---- NUEVO: incluir todo el día hasta las 23:59:59 ----
+            $params[':fecha_fin'] = $filters['fecha_fin'] . " 23:59:59";
         }
 
         $sql .= " ORDER BY b.fecha DESC";

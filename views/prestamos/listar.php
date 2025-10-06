@@ -18,6 +18,8 @@ if (!isset($_SESSION['user'])) {
         table { background:#fff; border-radius:10px; overflow:hidden; }
         th, td { vertical-align: middle !important; text-align: center; }
         ul { padding-left: 20px; text-align: left; margin:0; }
+        .estado-completo { color: green; font-weight: bold; }
+        .estado-vigente { color: orange; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -26,6 +28,7 @@ if (!isset($_SESSION['user'])) {
     <div class="card">
         <h2>Listado de Préstamos</h2>
         <a href="index.php?action=crearPrestamo" class="btn btn-success mb-3">Crear Préstamo</a>
+
         <table class="table table-striped">
             <thead class="table-dark">
                 <tr>
@@ -37,41 +40,58 @@ if (!isset($_SESSION['user'])) {
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($prestamos as $p): ?>
-                <tr>
-                    <td><?= htmlspecialchars($p['usuario_nombre']) ?></td>
-                    <td>
-                        <ul>
-                            <?php foreach ($p['detalle'] as $d): ?>
-                                <li>
-                                    <?= htmlspecialchars($d['producto_nombre']) ?>  
-                                    (Serial: <?= htmlspecialchars($d['serial']) ?>)  
-                                    - Prestado: <?= $d['cantidad_prestada'] ?>,  
-                                    Devuelto: <?= $d['cantidad_devuelta'] ?>  
-                                    <?php if (!empty($d['fecha_devolucion'])): ?>
+                <?php if (!empty($prestamos)): ?>
+                    <?php foreach ($prestamos as $p): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($p['usuario_nombre']) ?></td>
+                            <td>
+                                <ul>
+                                    <?php if (!empty($p['detalle'])): ?>
+                                        <?php foreach ($p['detalle'] as $d): ?>
+                                            <li>
+                                                <?= htmlspecialchars($d['producto_nombre']) ?>  
+                                                (Serial: <?= htmlspecialchars($d['serial']) ?>)
+                                                <?php if (!empty($d['fecha_devolucion'])): ?>
+                                                    <span class="text-success">✔ Devuelto</span>
+                                                <?php else: ?>
+                                                    <span class="text-danger">⏳ Prestado</span>
+                                                <?php endif; ?>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <li><em>Sin productos registrados</em></li>
                                     <?php endif; ?>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    </td>
-                    <td><?= date('Y-m-d H:i:s', strtotime($p['fecha_prestamo'])) ?></td>
-                    <td><?= htmlspecialchars($p['estado']) ?></td>
-                    <td>
-                        <?php 
-                        $pendientes = false;
-                        foreach ($p['detalle'] as $d) {
-                            if ($d['cantidad_devuelta'] < $d['cantidad_prestada']) {
-                                $pendientes = true; break;
-                            }
-                        }
-                        if ($pendientes): ?>
-                            <a href="index.php?action=devolverPrestamo&id=<?= $p['id'] ?>" class="btn btn-primary btn-sm">Devolver</a>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
+                                </ul>
+                            </td>
+                            <td><?= date('Y-m-d H:i:s', strtotime($p['fecha_prestamo'])) ?></td>
+                            <td class="<?= $p['estado'] === 'completo' ? 'estado-completo' : 'estado-vigente' ?>">
+                                <?= htmlspecialchars(ucfirst($p['estado'])) ?>
+                            </td>
+                            <td>
+                                <?php 
+                                $pendientes = false;
+                                foreach ($p['detalle'] as $d) {
+                                    if (empty($d['fecha_devolucion'])) {
+                                        $pendientes = true; 
+                                        break;
+                                    }
+                                }
+                                if ($pendientes): ?>
+                                    <a href="index.php?action=devolverPrestamo&id=<?= $p['id'] ?>" class="btn btn-primary btn-sm">
+                                        Devolver
+                                    </a>
+                                <?php else: ?>
+                                    <span class="badge bg-success">Completo</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr><td colspan="5"><em>No hay préstamos registrados</em></td></tr>
+                <?php endif; ?>
             </tbody>
         </table>
+
         <a href="index.php?action=dashboard" class="btn btn-secondary btn-back">Volver a Inicio</a>
     </div>
 </div>

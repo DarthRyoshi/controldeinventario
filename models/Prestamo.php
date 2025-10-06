@@ -7,9 +7,17 @@ class Prestamo {
     }
 
     public function getAll() {
-        $sql = "SELECT p.id, u.nombre AS usuario_nombre, p.fecha_prestamo, p.estado,
-                       dp.id AS detalle_id, pr.nombre AS producto_nombre, pr.serial,
-                       dp.cantidad_prestada, dp.cantidad_devuelta, dp.fecha_devolucion
+        $sql = "SELECT 
+                    p.id, 
+                    u.nombre AS usuario_nombre, 
+                    p.fecha_prestamo, 
+                    p.estado,
+                    dp.id AS detalle_id, 
+                    pr.nombre AS producto_nombre, 
+                    pr.serial,
+                    COALESCE(dp.cantidad_prestada, 1) AS cantidad_prestada,
+                    COALESCE(dp.cantidad_devuelta, 0) AS cantidad_devuelta,
+                    dp.fecha_devolucion
                 FROM prestamos p
                 JOIN usuarios u ON u.id = p.usuario_id
                 LEFT JOIN detalle_prestamos dp ON dp.prestamo_id = p.id
@@ -30,6 +38,7 @@ class Prestamo {
                     'detalle' => []
                 ];
             }
+
             if (!empty($row['detalle_id'])) {
                 $prestamos[$id]['detalle'][] = [
                     'detalle_id' => $row['detalle_id'],
@@ -52,38 +61,34 @@ class Prestamo {
 
         foreach ($productos as $p) {
             $producto_id = $p['id'];
-            $cantidad = $p['cantidad'];
 
             $stock = $this->conn->query("SELECT stock FROM productos WHERE id = $producto_id")->fetchColumn();
-            if ($stock < $cantidad) continue;
+            if ($stock < 1) continue;
 
             $stmt_detalle = $this->conn->prepare(
-                "INSERT INTO detalle_prestamos (prestamo_id, producto_id, cantidad_prestada, cantidad_devuelta) VALUES (?, ?, ?, 0)"
+                "INSERT INTO detalle_prestamos (prestamo_id, producto_id, cantidad_prestada, cantidad_devuelta) VALUES (?, ?, 1, 0)"
             );
-            $stmt_detalle->execute([$prestamo_id, $producto_id, $cantidad]);
+            $stmt_detalle->execute([$prestamo_id, $producto_id]);
 
-            $this->conn->exec("UPDATE productos SET stock = stock - $cantidad WHERE id = $producto_id");
+            $this->conn->exec("UPDATE productos SET stock = stock - 1 WHERE id = $producto_id");
         }
 
         return $prestamo_id;
     }
 
     public function devolver($prestamo_id, $productos_devueltos) {
-        foreach ($productos_devueltos as $detalle_id => $cantidad) {
-            if ($cantidad <= 0) continue;
+        if (empty($productos_devueltos)) return false;
 
+        foreach ($productos_devueltos as $detalle_id) {
             $stmt = $this->conn->prepare(
-                "UPDATE detalle_prestamos SET cantidad_devuelta = cantidad_devuelta + ? WHERE id = ?"
+                "UPDATE detalle_prestamos 
+                 SET cantidad_devuelta = cantidad_prestada, fecha_devolucion = NOW()
+                 WHERE id = ?"
             );
-            $stmt->execute([$cantidad, $detalle_id]);
+            $stmt->execute([$detalle_id]);
 
             $producto_id = $this->conn->query("SELECT producto_id FROM detalle_prestamos WHERE id = $detalle_id")->fetchColumn();
-            $this->conn->exec("UPDATE productos SET stock = stock + $cantidad WHERE id = $producto_id");
-
-            $check = $this->conn->query("SELECT cantidad_prestada, cantidad_devuelta FROM detalle_prestamos WHERE id = $detalle_id")->fetch(PDO::FETCH_ASSOC);
-            if ($check['cantidad_devuelta'] >= $check['cantidad_prestada']) {
-                $this->conn->exec("UPDATE detalle_prestamos SET fecha_devolucion = NOW() WHERE id = $detalle_id");
-            }
+            $this->conn->exec("UPDATE productos SET stock = stock + 1 WHERE id = $producto_id");
         }
 
         $pendientes = $this->conn->query("SELECT COUNT(*) FROM detalle_prestamos WHERE prestamo_id = $prestamo_id AND cantidad_devuelta < cantidad_prestada")->fetchColumn();
