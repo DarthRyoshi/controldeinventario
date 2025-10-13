@@ -6,7 +6,6 @@ class Prestamo {
         $this->conn = $db;
     }
 
-    // Obtener todos los préstamos, con filtro opcional por fecha
     public function getAll($filters = []) {
         $fecha_inicio = $filters['fecha_inicio'] ?? '';
         $fecha_fin    = $filters['fecha_fin'] ?? '';
@@ -73,49 +72,129 @@ class Prestamo {
         return array_values($prestamos);
     }
 
-    // Crear un préstamo
-    public function create($usuario_id, $productos) {
-        $stmt = $this->conn->prepare("INSERT INTO prestamos (usuario_id, fecha_prestamo, estado) VALUES (?, NOW(), 'vigente')");
-        $stmt->execute([$usuario_id]);
-        $prestamo_id = $this->conn->lastInsertId();
-
-        foreach ($productos as $p) {
-            $producto_id = $p['id'];
-            $stock = $this->conn->query("SELECT stock FROM productos WHERE id = $producto_id")->fetchColumn();
-            if ($stock < 1) continue;
-
-            $stmt_detalle = $this->conn->prepare(
-                "INSERT INTO detalle_prestamos (prestamo_id, producto_id, cantidad_prestada, cantidad_devuelta) VALUES (?, ?, 1, 0)"
-            );
-            $stmt_detalle->execute([$prestamo_id, $producto_id]);
-            $this->conn->exec("UPDATE productos SET stock = stock - 1 WHERE id = $producto_id");
+    public function getProductosDisponiblesOrganizados() {
+        // Primero obtener todos los productos disponibles
+        $sql = "SELECT * FROM productos 
+                WHERE stock > 0 AND estado = 'activo'
+                ORDER BY nombre, categoria, serial";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $organizados = [];
+        
+        foreach ($productos as $producto) {
+            $nombre = trim($producto['nombre']);
+            $categoria = trim($producto['categoria']) ?: 'Sin Categoría';
+            
+            // Inicializar categoría si no existe
+            if (!isset($organizados[$categoria])) {
+                $organizados[$categoria] = [];
+            }
+            
+            // Inicializar producto si no existe
+            if (!isset($organizados[$categoria][$nombre])) {
+                $organizados[$categoria][$nombre] = [
+                    'total_stock' => 0,
+                    'variantes' => []
+                ];
+            }
+            
+            // Sumar stock y agregar variante
+            $organizados[$categoria][$nombre]['total_stock'] += (int)$producto['stock'];
+            $organizados[$categoria][$nombre]['variantes'][] = [
+                'id' => $producto['id'],
+                'serial' => $producto['serial'],
+                'stock' => $producto['stock']
+            ];
         }
-
-        return $prestamo_id;
+        
+        return $organizados;
     }
 
-    // Devolver productos
+    public function create($usuario_id, $productos) {
+        try {
+            $this->conn->beginTransaction();
+
+            $stmt = $this->conn->prepare(
+                "INSERT INTO prestamos (usuario_id, fecha_prestamo, estado) VALUES (?, NOW(), 'vigente')"
+            );
+            $stmt->execute([$usuario_id]);
+            $prestamo_id = $this->conn->lastInsertId();
+
+            foreach ($productos as $p) {
+                $producto_id = $p['id'];
+                
+                // Verificar stock con bloqueo
+                $stockStmt = $this->conn->prepare("SELECT stock FROM productos WHERE id = ? FOR UPDATE");
+                $stockStmt->execute([$producto_id]);
+                $stock = $stockStmt->fetchColumn();
+                
+                if ($stock < 1) continue;
+
+                // Insertar detalle
+                $stmt_detalle = $this->conn->prepare(
+                    "INSERT INTO detalle_prestamos (prestamo_id, producto_id, cantidad_prestada, cantidad_devuelta) VALUES (?, ?, 1, 0)"
+                );
+                $stmt_detalle->execute([$prestamo_id, $producto_id]);
+                
+                // Actualizar stock
+                $updateStmt = $this->conn->prepare("UPDATE productos SET stock = stock - 1 WHERE id = ?");
+                $updateStmt->execute([$producto_id]);
+            }
+
+            $this->conn->commit();
+            return $prestamo_id;
+
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            error_log("Error al crear préstamo: " . $e->getMessage());
+            return false;
+        }
+    }
+
     public function devolver($prestamo_id, $productos_devueltos) {
         if (empty($productos_devueltos)) return false;
 
-        foreach ($productos_devueltos as $detalle_id) {
-            $stmt = $this->conn->prepare(
-                "UPDATE detalle_prestamos 
-                 SET cantidad_devuelta = cantidad_prestada, fecha_devolucion = NOW()
-                 WHERE id = ?"
+        try {
+            $this->conn->beginTransaction();
+
+            foreach ($productos_devueltos as $detalle_id) {
+                $stmt = $this->conn->prepare(
+                    "UPDATE detalle_prestamos 
+                     SET cantidad_devuelta = cantidad_prestada, fecha_devolucion = NOW()
+                     WHERE id = ?"
+                );
+                $stmt->execute([$detalle_id]);
+
+                $productoStmt = $this->conn->prepare("SELECT producto_id FROM detalle_prestamos WHERE id = ?");
+                $productoStmt->execute([$detalle_id]);
+                $producto_id = $productoStmt->fetchColumn();
+                
+                $updateStockStmt = $this->conn->prepare("UPDATE productos SET stock = stock + 1 WHERE id = ?");
+                $updateStockStmt->execute([$producto_id]);
+            }
+
+            $pendientesStmt = $this->conn->prepare(
+                "SELECT COUNT(*) FROM detalle_prestamos WHERE prestamo_id = ? AND cantidad_devuelta < cantidad_prestada"
             );
-            $stmt->execute([$detalle_id]);
+            $pendientesStmt->execute([$prestamo_id]);
+            $pendientes = $pendientesStmt->fetchColumn();
+            
+            if ($pendientes == 0) {
+                $updatePrestamoStmt = $this->conn->prepare("UPDATE prestamos SET estado = 'completo' WHERE id = ?");
+                $updatePrestamoStmt->execute([$prestamo_id]);
+            }
 
-            $producto_id = $this->conn->query("SELECT producto_id FROM detalle_prestamos WHERE id = $detalle_id")->fetchColumn();
-            $this->conn->exec("UPDATE productos SET stock = stock + 1 WHERE id = $producto_id");
+            $this->conn->commit();
+            return true;
+
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            error_log("Error al devolver préstamo: " . $e->getMessage());
+            return false;
         }
-
-        $pendientes = $this->conn->query("SELECT COUNT(*) FROM detalle_prestamos WHERE prestamo_id = $prestamo_id AND cantidad_devuelta < cantidad_prestada")->fetchColumn();
-        if ($pendientes == 0) {
-            $this->conn->exec("UPDATE prestamos SET estado = 'completo' WHERE id = $prestamo_id");
-        }
-
-        return true;
     }
 }
 ?>

@@ -20,8 +20,6 @@ if (!isset($_SESSION['user'])) {
         ul { padding-left: 20px; text-align: left; margin:0; }
         .estado-completo { color: green; font-weight: bold; }
         .estado-vigente { color: orange; font-weight: bold; }
-        .filtro-form { margin-bottom: 20px; }
-        .filtro-form label { font-weight: bold; }
     </style>
 </head>
 <body>
@@ -29,24 +27,6 @@ if (!isset($_SESSION['user'])) {
     <img src="assets/images/iconomuni.png" class="logo-img" onclick="window.location='index.php?action=dashboard'">
     <div class="card">
         <h2>Listado de Préstamos</h2>
-
-        <!-- Filtro de fecha -->
-        <form method="GET" class="filtro-form row g-2 align-items-end">
-            <div class="col-auto">
-                <label class="form-label">Desde:</label>
-                <input type="date" name="fecha_inicio" class="form-control" value="<?= htmlspecialchars($_GET['fecha_inicio'] ?? '') ?>">
-            </div>
-            <div class="col-auto">
-                <label class="form-label">Hasta:</label>
-                <input type="date" name="fecha_fin" class="form-control" value="<?= htmlspecialchars($_GET['fecha_fin'] ?? '') ?>">
-            </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-primary">Filtrar</button>
-            </div>
-            <div class="col-auto">
-                <a href="index.php?action=prestamos" class="btn btn-secondary">Quitar Filtro</a>
-            </div>
-        </form>
 
         <a href="index.php?action=crearPrestamo" class="btn btn-success mb-3">Crear Préstamo</a>
 

@@ -21,7 +21,6 @@ class PrestamoController {
         switch ($action) {
 
             case 'prestamos':
-                // Leer filtros desde GET
                 $filters = [
                     'fecha_inicio' => $_GET['fecha_inicio'] ?? '',
                     'fecha_fin'    => $_GET['fecha_fin'] ?? ''
@@ -36,9 +35,22 @@ class PrestamoController {
                     $usuario_id = $_POST['usuario_id'];
                     $productos  = [];
 
-                    foreach ($_POST['productos'] ?? [] as $pid => $p) {
-                        if (!empty($p['id'])) {
-                            $productos[] = ['id' => (int)$p['id']];
+                    foreach ($_POST['productos'] ?? [] as $nombreProducto => $p) {
+                        if (!empty($p['nombre'])) {
+                            // Buscar cualquier producto disponible con ese nombre Y ELEGIR UNO AL AZAR
+                            $sql = "SELECT id FROM productos 
+                                    WHERE nombre = :nombre 
+                                    AND stock > 0 
+                                    AND estado = 'activo' 
+                                    ORDER BY RAND() 
+                                    LIMIT 1";
+                            $stmt = $conn->prepare($sql);
+                            $stmt->execute([':nombre' => $nombreProducto]);
+                            $producto_id = $stmt->fetchColumn();
+                            
+                            if ($producto_id) {
+                                $productos[] = ['id' => (int)$producto_id];
+                            }
                         }
                     }
 
@@ -69,8 +81,9 @@ class PrestamoController {
                     exit;
                 }
 
-                $usuarios  = $usuarioModel->getAll();
-                $productos = $productoModel->getAll();
+                $usuarios = $usuarioModel->getAll();
+                $productosOrganizados = $prestamoModel->getProductosDisponiblesOrganizados();
+                
                 include __DIR__ . '/../views/prestamos/crear.php';
                 break;
 
