@@ -21,7 +21,13 @@ class PrestamoController {
         switch ($action) {
 
             case 'prestamos':
-                $prestamos = $prestamoModel->getAll();
+                // Leer filtros desde GET
+                $filters = [
+                    'fecha_inicio' => $_GET['fecha_inicio'] ?? '',
+                    'fecha_fin'    => $_GET['fecha_fin'] ?? ''
+                ];
+
+                $prestamos = $prestamoModel->getAll($filters);
                 include __DIR__ . '/../views/prestamos/listar.php';
                 break;
 
@@ -30,7 +36,6 @@ class PrestamoController {
                     $usuario_id = $_POST['usuario_id'];
                     $productos  = [];
 
-                    // Solo se agregan productos marcados (checklist)
                     foreach ($_POST['productos'] ?? [] as $pid => $p) {
                         if (!empty($p['id'])) {
                             $productos[] = ['id' => (int)$p['id']];
@@ -80,12 +85,10 @@ class PrestamoController {
                     $productos_devueltos = $_POST['devolver'] ?? [];
                     $prestamoModel->devolver($prestamo_id, $productos_devueltos);
 
-                    // Obtener nombre del usuario asociado al préstamo
                     $stmt_usuario = $conn->prepare("SELECT u.nombre FROM prestamos p JOIN usuarios u ON p.usuario_id = u.id WHERE p.id = :prestamo_id");
                     $stmt_usuario->execute(['prestamo_id' => $prestamo_id]);
                     $usuario_nombre = $stmt_usuario->fetchColumn() ?: 'Usuario';
 
-                    // Construir mensaje descriptivo para bitácora
                     $detalle_texto = [];
                     foreach ($productos_devueltos as $detalle_id) {
                         $prod = $conn->query("
@@ -101,8 +104,6 @@ class PrestamoController {
                     }
 
                     $mensaje = "Registro de devolución del préstamo de {$usuario_nombre}: " . implode(", ", $detalle_texto);
-
-                    // Registrar en bitácora
                     $bitacora->registrar("DEVOLUCIÓN PRÉSTAMO", $mensaje, $_SESSION['user']['id'], null, $prestamo_id);
 
                     header("Location: index.php?action=prestamos");
