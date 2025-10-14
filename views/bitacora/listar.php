@@ -38,10 +38,12 @@ if (!isset($_SESSION['user'])) {
             </div>
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary">Filtrar</button>
-                <a href="index.php?action=reporteBitacora&fecha_inicio=<?= $_GET['fecha_inicio'] ?? '' ?>&fecha_fin=<?= $_GET['fecha_fin'] ?? '' ?>" 
-                   target="_blank" class="btn btn-info">
-                   Reportes
-                </a>
+                <form method="GET" action="index.php" style="display: inline;">
+                    <input type="hidden" name="action" value="informesBitacora">
+                    <input type="hidden" name="fecha_inicio" value="<?= $_GET['fecha_inicio'] ?? '' ?>">
+                    <input type="hidden" name="fecha_fin" value="<?= $_GET['fecha_fin'] ?? '' ?>">
+                    <button type="submit" class="btn btn-info">Reportes</button>
+                </form>
             </div>
         </form>
 

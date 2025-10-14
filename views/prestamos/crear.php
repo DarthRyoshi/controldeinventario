@@ -14,34 +14,41 @@ if (!isset($_SESSION['user'])) {
         body { background: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .logo-img { height: 60px; cursor:pointer; margin-bottom:20px; display:block; margin:auto; }
         .card { border-radius:15px; padding:30px; background:#fff; box-shadow:0 5px 20px rgba(0,0,0,0.1); max-width:1200px; margin:auto;}
-        h2 { text-align:center; margin-bottom:20px; }
-        .form-check { margin-bottom:10px; padding: 10px; background: #f8f9fa; border-radius: 5px; }
+        h2 { text-align:center; margin-bottom:20px; color: #2c3e50; }
+        .form-check { margin-bottom:10px; padding: 12px 15px; background: #fff; border-radius: 8px; border: 1px solid #e9ecef; }
         
         input[type="checkbox"] {
             accent-color: #0d6efd;
+            transform: scale(1.2);
         }
         
         .categoria-group { margin-bottom: 15px; }
         .categoria-header { 
-            background: #e9ecef; 
-            padding: 12px 15px; 
+            background: #5d8aa8; 
+            padding: 15px 20px; 
             border-radius: 8px; 
             cursor: pointer; 
-            border: 1px solid #dee2e6;
+            border: none;
             display: flex;
             justify-content: between;
             align-items: center;
+            transition: all 0.3s ease;
+        }
+        .categoria-header:hover {
+            background: #6b94b0;
         }
         .categoria-title { 
             font-weight: bold; 
-            color: #495057; 
+            color: white; 
             margin: 0;
             font-size: 1.1em; 
         }
         .categoria-content { 
-            padding: 15px;
+            padding: 20px;
             background: #f8f9fa;
             border-radius: 0 0 8px 8px;
+            border: 1px solid #dee2e6;
+            border-top: none;
             display: none;
         }
         .categoria-content.show {
@@ -50,9 +57,42 @@ if (!isset($_SESSION['user'])) {
         .toggle-icon { 
             margin-left: auto;
             font-weight: bold;
-            color: #6c757d;
+            color: white;
+            font-size: 1.1em;
         }
-        .stock-badge { background: #198754; color: white; padding: 3px 10px; border-radius: 15px; font-size: 0.8em; margin-left: 10px; }
+        .stock-badge { 
+            background: #28a745; 
+            color: white; 
+            padding: 4px 12px; 
+            border-radius: 20px; 
+            font-size: 0.8em; 
+            margin-left: 10px; 
+            font-weight: 600;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            padding: 10px 15px;
+        }
+        .btn-success {
+            background: #28a745;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 25px;
+            font-weight: 600;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 25px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -93,7 +133,7 @@ if (!isset($_SESSION['user'])) {
                                                value="<?= $nombreProducto ?>" 
                                                id="prod<?= md5($nombreProducto) ?>">
                                         <label class="form-check-label" for="prod<?= md5($nombreProducto) ?>">
-                                            <strong><?= htmlspecialchars($nombreProducto) ?></strong> 
+                                            <strong style="color: #2c3e50;"><?= htmlspecialchars($nombreProducto) ?></strong> 
                                             <span class="stock-badge"><?= $grupo['total_stock'] ?> disponible(s)</span>
                                         </label>
                                     </div>
@@ -129,13 +169,6 @@ function toggleCategoria(element) {
         icon.textContent = '▶';
     }
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-    const primeraCategoria = document.querySelector('.categoria-header');
-    if (primeraCategoria) {
-        toggleCategoria(primeraCategoria);
-    }
-});
 </script>
 </body>
 </html>

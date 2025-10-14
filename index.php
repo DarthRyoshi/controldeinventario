@@ -18,7 +18,8 @@ $usuarioActions  = ['login','dashboard','usuarios','crearUsuario','editarUsuario
 $productoActions = ['productos','crearProducto','editarProducto','eliminarProducto'];
 $prestamoActions = ['prestamos','crearPrestamo','devolverPrestamo']; 
 $bitacoraActions = ['listar'];
-$reporteActions  = ['reporteBitacora','exportarPDF','exportarExcel']; 
+$reporteActions  = ['informesBitacora','previewReporte','descargarPDF','descargarExcel','listarInformes']; 
+
 // Enrutamiento
 if (in_array($action, $usuarioActions)) {
     UsuarioController::handle($action);
@@ -34,18 +35,7 @@ if (in_array($action, $usuarioActions)) {
     $bitacoraController->listar();
 
 } elseif (in_array($action, $reporteActions)) { 
-    $reporteController = new ReporteBitacoraController($conn);
-    switch ($action) {
-        case 'reporteBitacora':
-            $reporteController->index();
-            break;
-        case 'exportarPDF':
-            $reporteController->exportarPDF();
-            break;
-        case 'exportarExcel':
-            $reporteController->exportarExcel();
-            break;
-    }
+    ReporteBitacoraController::handle($action);
 
 } else {
     echo "Acción no válida";
