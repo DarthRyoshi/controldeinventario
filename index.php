@@ -18,7 +18,7 @@ $usuarioActions  = ['login','dashboard','usuarios','crearUsuario','editarUsuario
 $productoActions = ['productos','crearProducto','editarProducto','eliminarProducto'];
 $prestamoActions = ['prestamos','crearPrestamo','devolverPrestamo']; 
 $bitacoraActions = ['listar'];
-$reporteActions  = ['informesBitacora','previewReporte','descargarPDF','descargarExcel','listarInformes']; 
+$reporteActions  = ['informesBitacora','previewPDF','previewExcel','descargarPDF','descargarExcel','listarInformes','descargarArchivoGuardado']; 
 
 // Enrutamiento
 if (in_array($action, $usuarioActions)) {

@@ -30,8 +30,11 @@ class ReporteBitacoraController {
             case 'listarInformes':
                 $controller->listar();
                 break;
-            case 'previewReporte':
-                $controller->previewReporte();
+            case 'previewPDF':
+                $controller->previewPDF();
+                break;
+            case 'previewExcel':
+                $controller->previewExcel();
                 break;
             case 'descargarPDF':
                 $controller->descargarPDF();
@@ -39,17 +42,16 @@ class ReporteBitacoraController {
             case 'descargarExcel':
                 $controller->descargarExcel();
                 break;
+            case 'descargarArchivoGuardado':
+                $controller->descargarArchivoGuardado();
+                break;
             default:
                 echo "Acción no válida";
         }
     }
 
     private function informes() {
-        // Obtener datos para previsualización
-        $bitacorasPreview = $this->bitacoraModel->getAll([]);
-        $bitacorasPreview = array_slice($bitacorasPreview, 0, 10);
         $totalRegistros = count($this->bitacoraModel->getAll([]));
-        
         include __DIR__ . '/../views/reportes/informes.php';
     }
 
@@ -58,26 +60,7 @@ class ReporteBitacoraController {
         include __DIR__ . '/../views/reportes/listar.php';
     }
 
-    private function previewReporte() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Obtener formato seleccionado
-            $formato = $_POST['formato'] ?? 'pdf';
-            
-            // Guardar en sesión para la descarga
-            $_SESSION['formato_reporte'] = $formato;
-            
-            // Generar previsualización según el formato
-            if ($formato === 'pdf') {
-                $this->generarPreviewPDF();
-            } else {
-                $this->generarPreviewExcel();
-            }
-        } else {
-            header('Location: index.php?action=informesBitacora');
-        }
-    }
-
-    private function generarPreviewPDF() {
+    private function previewPDF() {
         $bitacoras = $this->bitacoraModel->getAll([]);
 
         $html = '
@@ -123,6 +106,29 @@ class ReporteBitacoraController {
                     background: #f8f9fa;
                     border-radius: 5px;
                 }
+                .btn {
+                    display: inline-block;
+                    padding: 12px 25px;
+                    margin: 0 10px;
+                    border-radius: 5px;
+                    text-decoration: none;
+                    font-weight: bold;
+                    border: none;
+                    cursor: pointer;
+                    font-size: 14px;
+                }
+                .btn-download {
+                    background: #dc3545;
+                    color: white;
+                }
+                .btn-cancel {
+                    background: #6c757d;
+                    color: white;
+                }
+                .btn:hover {
+                    opacity: 0.9;
+                    transform: translateY(-2px);
+                }
                 .table {
                     width: 100%;
                     border-collapse: collapse;
@@ -150,12 +156,12 @@ class ReporteBitacoraController {
             </div>
 
             <div class="action-buttons">
-                <a href="index.php?action=descargarPDF" class="btn" style="background: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">
-                    📄 Descargar PDF
-                </a>
-                <a href="index.php?action=informesBitacora" class="btn" style="background: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-                    ↩️ Volver a Modificar
-                </a>
+                <button onclick="descargarPDF()" class="btn btn-download">
+                    📄 DESCARGAR PDF
+                </button>
+                <button onclick="cancelar()" class="btn btn-cancel">
+                    ❌ CANCELAR
+                </button>
             </div>
 
             <div class="header">
@@ -170,15 +176,12 @@ class ReporteBitacoraController {
                         <th>Fecha</th>
                         <th>Usuario</th>
                         <th>Acción</th>
-                        <th>Descripción</th>
+                        <th>Acción</th>
                     </tr>
                 </thead>
                 <tbody>';
 
-        // Mostrar solo los primeros 20 registros en previsualización
-        $bitacorasPreview = array_slice($bitacoras, 0, 20);
-        
-        foreach ($bitacorasPreview as $b) {
+        foreach ($bitacoras as $b) {
             $html .= '<tr>
                         <td>' . date('d/m/Y H:i', strtotime($b['fecha'])) . '</td>
                         <td>' . htmlspecialchars($b['usuario']) . '</td>
@@ -187,120 +190,268 @@ class ReporteBitacoraController {
                       </tr>';
         }
 
-        if (count($bitacoras) > 20) {
-            $html .= '<tr>
-                        <td colspan="4" style="text-align: center; padding: 15px; background: #f8f9fa; font-style: italic;">
-                        ... y ' . (count($bitacoras) - 20) . ' registros más
-                        </td>
-                      </tr>';
-        }
-
         if (empty($bitacoras)) {
             $html .= '<tr><td colspan="4" style="text-align: center; padding: 20px;">No hay registros en la bitácora</td></tr>';
         }
 
         $html .= '</tbody></table>
-                </body>
-                </html>';
 
-        $dompdf = new Dompdf();
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
+            <script>
+                function descargarPDF() {
+                    window.open("index.php?action=descargarPDF", "_blank");
+                }
+                
+                function cancelar() {
+                    window.close();
+                }
+            </script>
+        </body>
+        </html>';
 
-        // Mostrar en navegador sin descargar
-        $dompdf->stream('vista_previa_bitacora.pdf', ['Attachment' => false]);
+        echo $html;
+        exit;
     }
 
-    private function generarPreviewExcel() {
+    private function previewExcel() {
         $bitacoras = $this->bitacoraModel->getAll([]);
 
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Bitácora');
+        $html = '
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Vista Previa - Reporte Excel</title>
+            <style>
+                body { 
+                    font-family: "Arial", sans-serif; 
+                    margin: 0;
+                    padding: 40px 20px;
+                    color: #333;
+                    background: #f4f6f9;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 100vh;
+                }
+                .container {
+                    max-width: 900px;
+                    width: 100%;
+                    background: white;
+                    padding: 40px;
+                    border-radius: 15px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    border-bottom: 2px solid #2c3e50;
+                    padding-bottom: 20px;
+                }
+                .title {
+                    color: #2c3e50;
+                    font-size: 28px;
+                    margin-bottom: 10px;
+                    font-weight: bold;
+                }
+                .subtitle {
+                    color: #7f8c8d;
+                    font-size: 16px;
+                }
+                .preview-notice {
+                    background: #fff3cd;
+                    border: 1px solid #ffeaa7;
+                    padding: 20px;
+                    border-radius: 8px;
+                    margin-bottom: 25px;
+                    text-align: center;
+                    color: #856404;
+                    font-size: 16px;
+                }
+                .action-buttons {
+                    text-align: center;
+                    margin: 40px 0 30px 0;
+                    padding: 25px;
+                    background: #f8f9fa;
+                    border-radius: 10px;
+                }
+                .btn {
+                    display: inline-block;
+                    padding: 15px 30px;
+                    margin: 0 15px;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    font-weight: bold;
+                    border: none;
+                    cursor: pointer;
+                    font-size: 16px;
+                    transition: all 0.3s ease;
+                    min-width: 180px;
+                }
+                .btn-download {
+                    background: #198754;
+                    color: white;
+                }
+                .btn-cancel {
+                    background: #6c757d;
+                    color: white;
+                }
+                .btn:hover {
+                    opacity: 0.9;
+                    transform: translateY(-3px);
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                }
+                .instructions {
+                    background: #e8f4fd;
+                    padding: 25px;
+                    border-radius: 8px;
+                    margin: 25px 0;
+                    border-left: 5px solid #0dcaf0;
+                    text-align: center;
+                }
+                .stats {
+                    background: #e9ecef;
+                    padding: 20px;
+                    border-radius: 8px;
+                    text-align: center;
+                    margin: 25px 0;
+                    font-size: 18px;
+                    font-weight: bold;
+                }
+                .table-preview {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 25px 0;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                }
+                .table-preview th {
+                    background: #2c3e50;
+                    color: white;
+                    padding: 15px;
+                    text-align: center;
+                    border: 1px solid #ddd;
+                    font-weight: bold;
+                }
+                .table-preview td {
+                    padding: 12px;
+                    border: 1px solid #ddd;
+                    text-align: center;
+                }
+                .table-preview tr:nth-child(even) {
+                    background: #f9f9f9;
+                }
+                .table-preview tr:hover {
+                    background: #f1f1f1;
+                }
+                .data-container {
+                    max-height: 400px;
+                    overflow-y: auto;
+                    margin: 25px 0;
+                    border: 2px solid #e9ecef;
+                    border-radius: 8px;
+                    padding: 10px;
+                }
+                .instructions h3 {
+                    margin-top: 0;
+                    color: #2c3e50;
+                    font-size: 20px;
+                }
+                .instructions ol {
+                    text-align: left;
+                    display: inline-block;
+                    margin: 15px 0;
+                }
+                .instructions li {
+                    margin: 10px 0;
+                    font-size: 15px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <div class="title">VISTA PREVIA - REPORTE EXCEL</div>
+                    <div class="subtitle">Bitácora del Sistema</div>
+                </div>
 
-        // Título
-        $sheet->setCellValue('A1', 'VISTA PREVIA - Reporte de Bitácora del Sistema');
-        $sheet->mergeCells('A1:D1');
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A1')->getAlignment()->setHorizontal('center');
+                <div class="preview-notice">
+                    <strong>📊 VISTA PREVIA EXCEL</strong><br>
+                    Revise el contenido antes de descargar el archivo Excel definitivo
+                </div>
 
-        // Instrucciones
-        $sheet->setCellValue('A2', 'Este es un documento de previsualización. Revise antes de descargar.');
-        $sheet->mergeCells('A2:D2');
-        $sheet->getStyle('A2')->getAlignment()->setHorizontal('center');
-        $sheet->getStyle('A2')->getFont()->setItalic(true);
+                <div class="stats">
+                    <strong>Total de registros en bitácora:</strong> ' . count($bitacoras) . '
+                </div>
 
-        // Fecha
-        $sheet->setCellValue('A3', 'Generado: ' . date('d/m/Y H:i:s'));
-        $sheet->mergeCells('A3:D3');
-        $sheet->getStyle('A3')->getAlignment()->setHorizontal('center');
+                <div class="data-container">
+                    <table class="table-preview">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Usuario</th>
+                                <th>Acción</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>';
 
-        // Encabezados
-        $sheet->setCellValue('A5', 'Fecha');
-        $sheet->setCellValue('B5', 'Usuario');
-        $sheet->setCellValue('C5', 'Acción');
-        $sheet->setCellValue('D5', 'Descripción');
-
-        // Estilo encabezados
-        $headerStyle = [
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4CAF50']]
-        ];
-        $sheet->getStyle('A5:D5')->applyFromArray($headerStyle);
-
-        // Datos (solo primeros 20 para preview)
-        $bitacorasPreview = array_slice($bitacoras, 0, 20);
-        $fila = 6;
-        foreach ($bitacorasPreview as $b) {
-            $sheet->setCellValue('A'.$fila, date('d/m/Y H:i', strtotime($b['fecha'])));
-            $sheet->setCellValue('B'.$fila, $b['usuario']);
-            $sheet->setCellValue('C'.$fila, $b['accion']);
-            $sheet->setCellValue('D'.$fila, $b['descripcion']);
-            $fila++;
+        $previewData = array_slice($bitacoras, 0, 15);
+        foreach ($previewData as $b) {
+            $html .= '<tr>
+                        <td>' . date('d/m/Y H:i', strtotime($b['fecha'])) . '</td>
+                        <td>' . htmlspecialchars($b['usuario']) . '</td>
+                        <td>' . htmlspecialchars($b['accion']) . '</td>
+                        <td>' . htmlspecialchars($b['descripcion']) . '</td>
+                      </tr>';
         }
 
-        if (count($bitacoras) > 20) {
-            $sheet->setCellValue('A'.$fila, '... y ' . (count($bitacoras) - 20) . ' registros más');
-            $sheet->mergeCells('A'.$fila.':D'.$fila);
-            $sheet->getStyle('A'.$fila)->getAlignment()->setHorizontal('center');
-            $sheet->getStyle('A'.$fila)->getFont()->setItalic(true);
-            $fila++;
+        if (count($bitacoras) > 15) {
+            $html .= '<tr>
+                        <td colspan="4" style="text-align: center; padding: 20px; font-style: italic; background: #f8f9fa;">
+                        ... y ' . (count($bitacoras) - 15) . ' registros más en el archivo completo
+                        </td>
+                      </tr>';
         }
 
         if (empty($bitacoras)) {
-            $sheet->setCellValue('A6', 'No hay registros en la bitácora');
-            $sheet->mergeCells('A6:D6');
-            $sheet->getStyle('A6')->getAlignment()->setHorizontal('center');
+            $html .= '<tr><td colspan="4" style="text-align: center; padding: 25px; color: #6c757d;">No hay registros en la bitácora</td></tr>';
         }
 
-        // Autoajustar columnas
-        foreach (range('A', 'D') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
+        $html .= '</tbody>
+                    </table>
+                </div>
 
-        // Aplicar bordes
-        $lastRow = $fila > 6 ? $fila - 1 : 6;
-        $sheet->getStyle('A5:D' . $lastRow)->applyFromArray([
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => Border::BORDER_THIN,
-                    'color' => ['rgb' => 'DDDDDD']
-                ]
-            ]
-        ]);
+                <div class="instructions">
+                    <h3>📝 INSTRUCCIONES</h3>
+                    <ol>
+                        <li>Revise el contenido del reporte arriba</li>
+                        <li>Si está correcto, use <strong>"DESCARGAR EXCEL"</strong> para guardar el archivo definitivo</li>
+                        <li>Use <strong>"CANCELAR"</strong> para volver atrás sin descargar</li>
+                    </ol>
+                </div>
 
-        // Guardar temporalmente para preview
-        $writer = new Xlsx($spreadsheet);
-        $tempFile = tempnam(sys_get_temp_dir(), 'preview_excel_');
-        $writer->save($tempFile);
+                <div class="action-buttons">
+                    <button onclick="descargarExcel()" class="btn btn-download">
+                        📊 DESCARGAR EXCEL
+                    </button>
+                    <button onclick="cancelar()" class="btn btn-cancel">
+                        ❌ CANCELAR
+                    </button>
+                </div>
+            </div>
 
-        // Mostrar en navegador
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: inline; filename="vista_previa_bitacora.xlsx"');
-        header('Cache-Control: max-age=0');
-        readfile($tempFile);
-        unlink($tempFile);
+            <script>
+                function descargarExcel() {
+                    window.open("index.php?action=descargarExcel", "_blank");
+                }
+                
+                function cancelar() {
+                    window.close();
+                }
+            </script>
+        </body>
+        </html>';
+
+        echo $html;
         exit;
     }
 
@@ -359,6 +510,7 @@ class ReporteBitacoraController {
             <div class="header">
                 <div class="title">REPORTE DE BITÁCORA DEL SISTEMA</div>
                 <div class="subtitle">Generado el: ' . date('d/m/Y H:i:s') . '</div>
+                <div class="subtitle">Total de registros: ' . count($bitacoras) . '</div>
             </div>
 
             <table class="table">
@@ -367,7 +519,7 @@ class ReporteBitacoraController {
                         <th>Fecha</th>
                         <th>Usuario</th>
                         <th>Acción</th>
-                        <th>Descripción</th>
+                        <th>Acción</th>
                     </tr>
                 </thead>
                 <tbody>';
@@ -404,10 +556,8 @@ class ReporteBitacoraController {
             '{}'
         );
 
-        // Limpiar sesión
-        unset($_SESSION['formato_reporte']);
-        
         $dompdf->stream($nombreArchivo, ['Attachment' => true]);
+        exit;
     }
 
     private function descargarExcel() {
@@ -417,44 +567,59 @@ class ReporteBitacoraController {
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Bitácora');
 
-        // Título
-        $sheet->setCellValue('A1', 'Reporte de Bitácora del Sistema');
+        // Título - Centrado
+        $sheet->setCellValue('A1', 'REPORTE DE BITÁCORA DEL SISTEMA');
         $sheet->mergeCells('A1:D1');
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
         $sheet->getStyle('A1')->getAlignment()->setHorizontal('center');
 
-        // Fecha
+        // Fecha - Centrado
         $sheet->setCellValue('A2', 'Generado: ' . date('d/m/Y H:i:s'));
         $sheet->mergeCells('A2:D2');
         $sheet->getStyle('A2')->getAlignment()->setHorizontal('center');
+        $sheet->getStyle('A2')->getFont()->setSize(12);
 
-        // Encabezados
-        $sheet->setCellValue('A4', 'Fecha');
-        $sheet->setCellValue('B4', 'Usuario');
-        $sheet->setCellValue('C4', 'Acción');
-        $sheet->setCellValue('D4', 'Descripción');
+        // Total de registros - Centrado
+        $sheet->setCellValue('A3', 'Total de registros: ' . count($bitacoras));
+        $sheet->mergeCells('A3:D3');
+        $sheet->getStyle('A3')->getAlignment()->setHorizontal('center');
+        $sheet->getStyle('A3')->getFont()->setBold(true)->setSize(12);
 
-        // Estilo encabezados
+        // Espacio
+        $sheet->setCellValue('A4', '');
+
+        // Encabezados - Centrados
+        $sheet->setCellValue('A5', 'FECHA');
+        $sheet->setCellValue('B5', 'USUARIO');
+        $sheet->setCellValue('C5', 'ACCIÓN');
+        $sheet->setCellValue('D5', 'ACCIÓN');
+
+        // Estilo encabezados - Centrados
         $headerStyle = [
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4CAF50']]
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 12],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4CAF50']],
+            'alignment' => ['horizontal' => 'center', 'vertical' => 'center']
         ];
-        $sheet->getStyle('A4:D4')->applyFromArray($headerStyle);
+        $sheet->getStyle('A5:D5')->applyFromArray($headerStyle);
 
-        // Datos
-        $fila = 5;
+        // Datos - Centrados
+        $fila = 6;
         foreach ($bitacoras as $b) {
             $sheet->setCellValue('A'.$fila, date('d/m/Y H:i', strtotime($b['fecha'])));
             $sheet->setCellValue('B'.$fila, $b['usuario']);
             $sheet->setCellValue('C'.$fila, $b['accion']);
             $sheet->setCellValue('D'.$fila, $b['descripcion']);
+            
+            // Centrar todas las celdas de datos
+            $sheet->getStyle('A'.$fila.':D'.$fila)->getAlignment()->setHorizontal('center');
             $fila++;
         }
 
         if (empty($bitacoras)) {
-            $sheet->setCellValue('A5', 'No hay registros en la bitácora');
-            $sheet->mergeCells('A5:D5');
-            $sheet->getStyle('A5')->getAlignment()->setHorizontal('center');
+            $sheet->setCellValue('A6', 'No hay registros en la bitácora');
+            $sheet->mergeCells('A6:D6');
+            $sheet->getStyle('A6')->getAlignment()->setHorizontal('center');
+            $sheet->getStyle('A6')->getFont()->setItalic(true);
         }
 
         // Autoajustar columnas
@@ -462,9 +627,9 @@ class ReporteBitacoraController {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
-        // Aplicar bordes
-        $lastRow = $fila > 5 ? $fila - 1 : 5;
-        $sheet->getStyle('A4:D' . $lastRow)->applyFromArray([
+        // Aplicar bordes a toda la tabla
+        $lastRow = $fila > 6 ? $fila - 1 : 6;
+        $sheet->getStyle('A5:D' . $lastRow)->applyFromArray([
             'borders' => [
                 'allBorders' => [
                     'borderStyle' => Border::BORDER_THIN,
@@ -472,6 +637,9 @@ class ReporteBitacoraController {
                 ]
             ]
         ]);
+
+        // Centrar verticalmente todas las celdas
+        $sheet->getStyle('A1:D' . $lastRow)->getAlignment()->setVertical('center');
 
         $nombreArchivo = 'reporte_bitacora_' . date('Y-m-d_H-i-s') . '.xlsx';
         
@@ -483,14 +651,22 @@ class ReporteBitacoraController {
             '{}'
         );
 
-        // Limpiar sesión
-        unset($_SESSION['formato_reporte']);
-
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment; filename="' . $nombreArchivo . '"');
         $writer = new Xlsx($spreadsheet);
         $writer->save('php://output');
         exit;
+    }
+
+    private function descargarArchivoGuardado() {
+        // Para archivos guardados, regeneramos el reporte
+        $bitacoras = $this->bitacoraModel->getAll([]);
+        
+        if (isset($_GET['tipo']) && $_GET['tipo'] == 'excel') {
+            $this->descargarExcel();
+        } else {
+            $this->descargarPDF();
+        }
     }
 }
 ?>

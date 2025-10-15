@@ -47,7 +47,11 @@ if (!isset($_SESSION['user'])) {
                             <td><?= date('d/m/Y H:i', strtotime($reporte['fecha_generacion'])) ?></td>
                             <td><?= htmlspecialchars($reporte['usuario_nombre'] ?? 'Sistema') ?></td>
                             <td>
-                                <a href="<?= htmlspecialchars($reporte['ruta_archivo']) ?>" class="btn btn-sm btn-success" download>📥 Descargar</a>
+                                <?php if ($reporte['tipo_reporte'] == 'PDF'): ?>
+                                    <a href="index.php?action=descargarPDF" class="btn btn-sm btn-success">📥 Descargar</a>
+                                <?php else: ?>
+                                    <a href="index.php?action=descargarExcel" class="btn btn-sm btn-success">📥 Descargar</a>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
